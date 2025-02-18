@@ -1,0 +1,20 @@
+- name: Deploy SSH key
+  hosts: local
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: "~/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: Deploy private key
+      copy:
+        content: "{{ ssh_private_key }}"
+        dest: "~/.ssh/id_rsa"
+        mode: '0600'
+
+    - name: Set correct permissions for SSH private key
+      file:
+        path: "~/.ssh/id_rsa"
+        mode: '0600'
+
