@@ -1,0 +1,127 @@
+---
+- name: Setup ZSH environment with oh-my-zsh, plugins, and dotfiles
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    dotfiles_repo: "https://github.com/ahmadrezaM97/dotfiles.git"
+
+  tasks:
+    - name: Install required packages on Ubuntu
+      ansible.builtin.apt:
+        name:
+          - zsh
+          - stow
+          - git
+          - bat
+          - curl
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Create .local/bin directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.local/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Create symbolic link for bat (batcat)
+      ansible.builtin.file:
+        src: /usr/bin/batcat
+        dest: "{{ ansible_env.HOME }}/.local/bin/bat"
+        state: link
+
+    - name: Install required packages on macOS using Homebrew
+      community.general.homebrew:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - zsh
+        - stow
+        - git
+        - bat
+        - curl
+      when: ansible_facts.os_family == "Darwin"
+
+    - name: Check if oh-my-zsh is already installed
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+      register: ohmyzsh_dir
+
+    - name: Install oh-my-zsh
+      become: false
+      ansible.builtin.shell: 'RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+      args:
+        executable: /bin/bash
+        creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+      when: not ohmyzsh_dir is defined or not ohmyzsh_dir.stat.exists
+
+    - name: Ensure oh-my-zsh custom plugins directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins"
+        state: directory
+        mode: "0755"
+
+    - name: Clone oh-my-zsh plugins if not already present
+      ansible.builtin.git:
+        repo: "{{ item.repo }}"
+        dest: "{{ item.dest }}"
+        version: master
+        update: false
+      loop:
+        - repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+          dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+        - repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
+          dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+        - repo: "https://github.com/MichaelAquilina/zsh-you-should-use.git"
+          dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/you-should-use"
+        - repo: "https://github.com/fdellwing/zsh-bat.git"
+          dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-bat"
+
+    - name: Clone fzf repository
+      ansible.builtin.git:
+        repo: https://github.com/junegunn/fzf.git
+        dest: "{{ ansible_env.HOME }}/.fzf"
+        version: master
+        depth: 1
+        update: false
+
+    - name: Install fzf
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.fzf/install --all"
+      args:
+        creates: "{{ ansible_env.HOME }}/.fzf/bin/fzf"
+
+    - name: Clone fzf
+      ansible.builtin.git:
+        repo: https://github.com/unixorn/fzf-zsh-plugin.git
+        dest: "{{ ansible_env.HOME }}/plugins/fzf-zsh-plugin"
+        depth: 1
+        update: false
+      become: false
+
+    - name: Clone dotfiles repository
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repo }}"
+        dest: "{{ ansible_env.HOME }}/dotfiles"
+        version: main
+        update: false
+      become: false
+
+    - name: Check if .zshrc exists
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+      register: zshrc_file
+
+    - name: Delete existing .zshrc
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        state: absent
+      when: zshrc_file.stat.exists
+
+    - name: Apply zsh dotfiles using GNU stow
+      ansible.builtin.command: stow -t "{{ ansible_env.HOME }}" -d "{{ ansible_env.HOME }}/dotfiles" zsh
+      args:
+        chdir: "{{ ansible_env.HOME }}/dotfiles"
+        creates: "{{ ansible_env.HOME }}/.zshrc"
+      become: false

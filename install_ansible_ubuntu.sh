@@ -1,38 +1,21 @@
 #!/bin/bash
+set -e
 
-# Ensure the script is running on Ubuntu
-if [[ "$(uname)" != "Linux" ]]; then
-  echo "This script is intended for Ubuntu only."
-  exit 1
-fi
-
-# Source OS release information
-if [[ -f /etc/os-release ]]; then
-  . /etc/os-release
-  if [[ "$ID" != "ubuntu" && "$ID_LIKE" != *"ubuntu"* ]]; then
-    echo "This script supports only Ubuntu."
-    exit 1
-  fi
+# Check if Ansible is installed
+if command -v ansible >/dev/null 2>&1; then
+    echo "Ansible is already installed."
 else
-  echo "Cannot determine the Linux distribution. This script supports only Ubuntu."
-  exit 1
+    echo "Ansible not found. Installing Ansible..."
+    # Update package list and install prerequisites
+    sudo apt update
+    sudo apt install -y software-properties-common
+
+    # Add the official Ansible PPA and install Ansible
+    sudo apt-add-repository --yes --update ppa:ansible/ansible
+    sudo apt update
+    sudo apt install -y ansible
+    echo "Installation complete."
 fi
 
-echo "Updating apt repository..."
-sudo apt update
 
-# Install dependencies needed for adding PPAs
-sudo apt install -y software-properties-common
 
-echo "Adding the official Ansible PPA..."
-sudo apt-add-repository --yes --update ppa:ansible/ansible
-
-echo "Installing Ansible via apt..."
-sudo apt install -y ansible
-
-if [[ $? -eq 0 ]]; then
-  echo "Ansible was installed successfully on Ubuntu!"
-else
-  echo "There was an error installing Ansible on Ubuntu."
-  exit 1
-fi

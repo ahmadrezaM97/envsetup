@@ -1,0 +1,51 @@
+---
+- name: Install tmux and apply dotfiles configuration
+  hosts: localhost
+  gather_facts: true
+  become: true
+  vars:
+    dotfiles_repo: "https://github.com/ahmadrezaM97/dotfiles.git"
+
+  tasks:
+    - name: Install tmux on Ubuntu
+      ansible.builtin.apt:
+        name: tmux
+        state: present
+        update_cache: true
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install tmux on macOS
+      community.general.homebrew:
+        name: tmux
+        state: present
+      when: ansible_distribution == 'Darwin'
+
+    - name: Clone TPM (Tmux Plugin Manager) repository
+      ansible.builtin.git:
+        repo: "https://github.com/tmux-plugins/tpm"
+        dest: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
+        update: false
+        version: "master"
+      become: false
+
+    - name: Clone dotfiles repository
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repo }}"
+        dest: "{{ ansible_env.HOME }}/dotfiles"
+        version: main
+        update: false
+      become: false
+
+    - name: Apply tmux dotfiles using GNU stow
+      ansible.builtin.command: stow -t "{{ ansible_env.HOME }}" -d "{{ ansible_env.HOME }}/dotfiles" tmux
+      args:
+        chdir: "{{ ansible_env.HOME }}/dotfiles"
+        creates: "{{ ansible_env.HOME }}/.tmux.conf"
+      become: false
+
+    - name: Install tmux plugins using TPM from the command line
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/scripts/install_plugins.sh"
+      args:
+        chdir: "{{ ansible_env.HOME }}"
+        creates: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/bin/install_plugins"
+      become: false

@@ -1,0 +1,19 @@
+---
+- name: Import ZSH installation playbook
+  import_playbook: install_zsh.yaml
+
+- name: Import Tmux installation playbook
+  import_playbook: install_tmux.yaml
+
+- name: Import Alacritty terminal installation playbook
+  import_playbook: install_alacritty.yaml
+
+- name: Import Python installation playbook
+  import_playbook: install_python.yaml
+
+- name: Import Golang installation playbook
+  import_playbook: install_golang.yaml
+
+
+- name: Import personal tools installation playbook
+  import_playbook: install_personal_tools.yaml

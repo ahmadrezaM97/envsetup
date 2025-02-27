@@ -1,0 +1,17 @@
+---
+- name: Install personal tools
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Install applications on MacOS
+      when: ansible_facts['os_family'] == "Darwin"
+      block:
+        - name: Install Homebrew packages
+          community.general.homebrew_cask:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - google-chrome
+            - ticktick
+            - obsidian
+            - anki

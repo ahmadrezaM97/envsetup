@@ -1,0 +1,68 @@
+---
+- name: Install Python3, pip, uv package manager, and IPython
+  hosts: localhost
+  connection: local
+  vars:
+    # Define package names
+    ubuntu_python_packages:
+      - python3
+      - python3-pip
+    macos_python_package: python
+    uv_package: uv
+  tasks:
+  # ------------------------------
+  # Ubuntu (Debian-based) tasks
+  # ------------------------------
+    - name: Ubuntu | Install Python3 and pip
+      ansible.builtin.apt:
+        name: "{{ ubuntu_python_packages }}"
+        state: present
+        update_cache: true
+      become: true
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Ubuntu | Install uv package manager via pip
+      ansible.builtin.pip:
+        name: "{{ uv_package }}"
+        executable: pip3
+        state: present
+        extra_args: "--break-system-packages"
+      become: false
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Ubuntu | Install IPython via pip
+      ansible.builtin.pip:
+        name: ipython
+        executable: pip3
+        state: present
+        extra_args: "--break-system-packages"
+      become: false
+      when: ansible_distribution == "Ubuntu"
+
+    # ------------------------------
+    # macOS (Darwin) tasks
+    # ------------------------------
+    - name: MACOS Install Python3 via Homebrew
+      community.general.homebrew:
+        name: "{{ macos_python_package }}"
+        state: present
+      become: false
+      when: ansible_system == "Darwin"
+
+    - name: MACOS Install uv package manager via pip
+      ansible.builtin.pip:
+        name: "{{ uv_package }}"
+        executable: pip3
+        state: present
+        extra_args: "--break-system-packages"
+      become: false
+      when: ansible_system == "Darwin"
+
+    - name: MACOS Install IPython via pip
+      ansible.builtin.pip:
+        name: ipython
+        executable: pip3
+        state: present
+        extra_args: "--break-system-packages"
+      become: false
+      when: ansible_system == "Darwin"

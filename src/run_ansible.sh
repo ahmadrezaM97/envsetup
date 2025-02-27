@@ -1,0 +1,1 @@
+ansible-playbook -i "localhost," ./install_all.yaml --connection=local

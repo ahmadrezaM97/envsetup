@@ -1,0 +1,58 @@
+---
+- name: Install alacritty and apply dotfiles configuration
+  hosts: localhost
+  gather_facts: true
+  become: true
+  vars:
+    dotfiles_repo: "https://github.com/ahmadrezaM97/dotfiles.git"
+
+  tasks:
+    - name: Install Alacritty on Ubuntu
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Install required dependencies
+          ansible.builtin.apt:
+            name:
+              - cmake
+              - pkg-config
+              - libfreetype6-dev
+              - libfontconfig1-dev
+              - libxcb-xfixes0-dev
+              - libxkbcommon-dev
+              - python3
+            state: present
+            update_cache: true
+
+        - name: Add Alacritty PPA
+          ansible.builtin.apt_repository:
+            repo: ppa:aslatter/ppa
+            state: present
+
+        - name: Install Alacritty package
+          ansible.builtin.apt:
+            name: alacritty
+            state: present
+
+    - name: Install Alacritty on macOS
+      when: ansible_os_family == "Darwin"
+      become: false
+      block:
+        - name: Install Alacritty via Homebrew
+          community.general.homebrew_cask:
+            name: alacritty
+            state: present
+
+    - name: Clone dotfiles repository
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repo }}"
+        dest: "{{ ansible_env.HOME }}/dotfiles"
+        version: main
+        update: false
+      become: false
+
+    - name: Apply zsh dotfiles using GNU stow
+      ansible.builtin.command: stow -t "{{ ansible_env.HOME }}" -d "{{ ansible_env.HOME }}/dotfiles" alacritty
+      args:
+        chdir: "{{ ansible_env.HOME }}/dotfiles"
+        creates: "{{ ansible_env.HOME }}/.zshrc"
+      become: false

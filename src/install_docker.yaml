@@ -1,0 +1,98 @@
+---
+- name: Install Docker and Docker Compose on Ubuntu and macOS
+  hosts: localhost
+  connection: local
+  become: true
+  vars:
+    docker_compose_version: "1.29.2"
+    user: "{{ lookup('env', 'USER') }}"
+
+  tasks:
+  # -------------------------------
+  # Tasks for Ubuntu (Debian-based)
+  # -------------------------------
+    - name: Install prerequisites and Docker on Ubuntu
+      when: ansible_distribution == "Ubuntu"
+
+      # -------------------------------
+      # Tasks for macOS (Darwin)
+      # -------------------------------
+      block:
+        - name: Install prerequisite packages
+          ansible.builtin.apt:
+            name:
+              - apt-transport-https
+              - ca-certificates
+              - curl
+              - gnupg
+              - lsb-release
+            state: present
+            update_cache: true
+
+        - name: Add Docker's official GPG key
+          ansible.builtin.apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+
+        - name: Add Docker repository
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+            state: present
+
+        - name: Update apt cache after adding Docker repo
+          ansible.builtin.apt:
+            update_cache: true
+
+        - name: Install Docker packages
+          ansible.builtin.apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+            state: latest
+
+        - name: Create docker group
+          become: true
+          ansible.builtin.group:
+            name: docker
+            state: present
+
+        - name: Add user to docker group
+          become: true
+          ansible.builtin.user:
+            name: "{{ user }}"
+            groups: docker
+            append: true
+
+        - name: Notify about group changes
+          ansible.builtin.debug:
+            msg: "Docker group changes applied. Please log out and log back in for changes to take effect."
+
+        - name: Start and enable Docker service
+          ansible.builtin.service:
+            name: docker
+            state: started
+            enabled: true
+
+        - name: Download Docker Compose binary
+          ansible.builtin.get_url:
+            url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system | lower }}-{{ ansible_architecture
+              }}"
+            dest: /usr/local/bin/docker-compose
+            mode: "0755"
+    - name: Install Docker and Docker Compose on macOS using Homebrew
+      when: ansible_system == "Darwin"
+      block:
+        - name: Install Docker Desktop (via Homebrew Cask)
+          become: false
+          community.general.homebrew:
+            name: docker
+            state: present
+            install_options:
+              - "--cask"
+
+        - name: Install Docker Compose using Homebrew
+          become: false
+          community.general.homebrew:
+            name: docker-compose
+            state: present
