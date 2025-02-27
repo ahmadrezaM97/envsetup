@@ -1,4 +1,7 @@
 ---
+- name: Import basic tools
+  import_playbook: install_basic_tools.yaml
+
 - name: Import ZSH installation playbook
   import_playbook: install_zsh.yaml
 

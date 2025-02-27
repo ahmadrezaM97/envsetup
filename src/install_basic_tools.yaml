@@ -1,0 +1,32 @@
+---
+- name: Install basic tools
+  hosts: all
+  become: true
+  tasks:
+    - name: Install tools on Ubuntu
+      ansible.builtin.package:
+        name:
+          - git
+          - htop
+          - net-tools
+          - dnsutils
+          - vim
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Install Homebrew on macOS
+      ansible.builtin.shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      args:
+        creates: /usr/local/bin/brew
+      when: ansible_os_family == 'Darwin'
+
+    - name: Install tools on macOS
+      community.general.homebrew:
+        name:
+          - git
+          - htop
+          - net-tools
+          - dnsutils
+          - vim
+        state: present
+      when: ansible_os_family == 'Darwin'

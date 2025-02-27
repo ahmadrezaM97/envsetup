@@ -1,33 +1,52 @@
 #!/bin/bash
 
-# Ensure the script is running on macOS
-if [[ "$(uname)" != "Darwin" ]]; then
-  echo "This script is intended for macOS only."
-  exit 1
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+# Function to print messages
+function info() {
+    echo "==> $1"
+}
+
+# Check for Homebrew and install if not present
+if ! command -v brew &> /dev/null; then
+    info "Homebrew not found. Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+else
+    info "Homebrew is already installed."
 fi
 
-# Check if Homebrew is installed; if not, install it.
-if ! command -v brew >/dev/null 2>&1; then
-  echo "Homebrew is not installed. Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-  # Verify that brew is now available
-  if ! command -v brew >/dev/null 2>&1; then
-    echo "Homebrew installation may have failed or is not in your PATH."
-    echo "Please follow the instructions at https://brew.sh/ to complete installation."
-    exit 1
-  fi
-fi
-
-echo "Updating Homebrew..."
+# Update Homebrew
+info "Updating Homebrew..."
 brew update
 
-echo "Installing Ansible via Homebrew..."
-brew install ansible
-
-if [[ $? -eq 0 ]]; then
-  echo "Ansible was installed successfully on macOS!"
+# Install Git if not already installed
+if ! command -v git &> /dev/null; then
+    info "Git not found. Installing Git..."
+    brew install git
 else
-  echo "There was an error installing Ansible on macOS."
-  exit 1
+    info "Git is already installed."
 fi
+
+# Install Ansible if not already installed
+# Check for pip and install if not present
+if ! command -v pip3 &> /dev/null; then
+  info "pip3 not found. Installing pip3..."
+  brew install python
+else
+  info "pip3 is already installed."
+fi
+
+# Install Ansible if not already installed
+if ! command -v ansible &> /dev/null; then
+  info "Ansible not found. Installing Ansible with pip3..."
+  pip3 install ansible
+else
+  info "Ansible is already installed."
+fi
+
+# Run the ansible-pull command
+info "Running ansible-pull to execute playbook..."
+ansible-pull -U https://github.com/ahmadrezaM97/envsetup.git src/install_all.yaml -vvv
+
+info "Script complete."
